@@ -6,7 +6,7 @@ memory space with main thread; this is more portable than fork: threads
 work on standard Windows systems, but process forks do not;
 """
 
-from basic_server import decode_request, find_words, encode_response, get_word_list
+from TCP_basic_server import decode_request, find_words, encode_response, get_word_list
 import time, _thread as thread           # or use threading.Thread().start()
 from socket import *                     # get socket constructor and constants
 myHost = "localhost"                              # server machine, '' means local host
@@ -38,6 +38,7 @@ def dispatcher():                                # listen until process killed
     ### I ALSO EDITED THIS SECTION, TO ALLOW FOR KEYBOARD INTERRUPT ###
     try:
         print("Server ready to receive connections.")
+        print('Press CTRL+C to stop server.')
         while True:                                  # wait for next connection,
             try:
                 connection, address = sockobj.accept()   # pass to thread for service

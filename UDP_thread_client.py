@@ -7,21 +7,26 @@ def main():
     serverPort = 12000
     MAX_BYTES = 700000 # the given text file is 651 KB so 700 KB is reasonable as an upper bound for the size of the buffer needed.
 
-    clientSocket = socket(AF_INET, SOCK_STREAM) # create and connect client socket to server socket.
-    clientSocket.connect((serverName, serverPort))
+    clientSocket = socket(AF_INET, SOCK_DGRAM) # create and connect client socket to server socket.
+    
     while True: # query loop to continue querying user until they choose to quit
         query = input('Input Query: ') # accept pattern from user
         if query == "quit":
             break
 
-        clientSocket.send(send_request(query).encode())     # convert user pattern to application protocol send request
+        clientSocket.sendto(send_request(query).encode(), (serverName, serverPort))     # convert user pattern to application protocol send request
 
-        response = clientSocket.recv(MAX_BYTES).decode()    # receive all bytes from server
-        _, status, N, words = decode_response(response)     # parse response protocol message into data
+        raw_response, _ = clientSocket.recvfrom(MAX_BYTES)  # receive all bytes from server
+        _, status, N, words = decode_response(raw_response.decode())     # parse response protocol message into data
+        num_words = len(words.split(","))
+        total_words = int(N)
 
         print(f"Number of words found: {N}")
         if status == "200 OK":
-            print(f"Words: {words.split(",")}")
+            if total_words > num_words:
+                print(f"Words: {words}...and {total_words-num_words} more matches...")
+            else:
+                print(f"Words: {words}")
         if status == "404 NOT FOUND":
             print(f"No words were found which matched the given pattern.")
     clientSocket.close()
