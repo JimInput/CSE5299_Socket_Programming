@@ -1,17 +1,15 @@
 # I referenced the UDP socket programming lecture slides.
 
-# fnmatch code from https://docs.python.org/3/library/fnmatch.html
-
 from socket import *
-from fnmatch import fnmatch
+from TCP_basic_server import get_word_list, decode_request, find_words # These are unchanged from the TCP version
 
 def main():
-    serverPort = 12000 # Using a unused large port number.
+    serverPort = 12000          # arbitrary unassigned port number
 
     serverSocket = socket(AF_INET, SOCK_DGRAM) # create UDP server socket.
     serverSocket.bind(('', serverPort))
 
-    serverSocket.settimeout(0.5) # A reasonable amount of time to wait (breaking the blocking of .recvfrom() so that the program can stop with KeyboardInterrupt).
+    serverSocket.settimeout(0.5) # A reasonable amount of time to wait for KeyboardInterrupt
 
     WORD_LIST = get_word_list("wordlist.txt") # split text file into an array of strings.
 
@@ -25,12 +23,12 @@ def main():
             
                 print(f"Datagram from {clientAddress[0]}:{clientAddress[1]} received.")
 
-                request = message.decode()      # get request formatted string.
-                pattern = decode_request(request)                   # extract string pattern from request format.
-                matching_words = find_words(WORD_LIST, pattern)     # get all words which match the requested format.
-                # We limit the number of matching_words to 50 since datagrams are limited in size.
+                request = message.decode()      # get request formatted string
+                pattern = decode_request(request)                   # extract string pattern from request format
+                matching_words = find_words(WORD_LIST, pattern)     # get all words which match the requested format
+                # We limit the number of matching_words to 50 since datagrams are limited in size compared to TCP
                 response = encode_response(matching_words, 50)
-                serverSocket.sendto(response.encode(), clientAddress) # format data back into protocol and send to client.
+                serverSocket.sendto(response.encode(), clientAddress) # format data back into protocol and send to client
 
                 print(f"Datagram sent to {clientAddress[0]}:{clientAddress[1]}")
             except TimeoutError:
@@ -40,19 +38,6 @@ def main():
         print("Server Shutting Down...")
 
     serverSocket.close()
-
-def get_word_list(filename):
-    with open(filename, 'r') as f: 
-        return f.read().splitlines() # split text file into an array of strings.
-
-def find_words(WORD_LIST, pattern): 
-    """Uses regex pattern matching to pattern match with all of the words in WORD_LIST."""
-    return [word for word in WORD_LIST if fnmatch(word, f"*{pattern}*")] 
-
-def decode_request(req):
-    """Parses a request formatted as PWMS/1.0 NL pattern NL"""
-    segments = req.split("\n")
-    return segments[1] # The segment containing the query
 
 def encode_response(words, max_words=None): # 3 segments, a status header, (404 Not found or 200 OK), NWORDS, and the text body (word data).
     """Take array of words and format into response message. Formatted as PWMS/1.0 STATUS NL NWORDS: N NL WORD_LIST"""

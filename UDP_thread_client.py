@@ -1,11 +1,10 @@
 from socket import *
-
-# THIS FILE IS NAMED THREAD-CLIENT BUT IT DOESN'T USE THREADS
+from TCP_basic_client import send_request, decode_response
 
 def main():
     serverName = 'localhost'
     serverPort = 12000
-    MAX_BYTES = 700000 # the given text file is 651 KB so 700 KB is reasonable as an upper bound for the size of the buffer needed.
+    MAX_BYTES = 60000 # UDP is limited to 2^16 bytes so we have to limit the max number of bytes
 
     clientSocket = socket(AF_INET, SOCK_DGRAM) # create and connect client socket to server socket.
     
@@ -14,10 +13,13 @@ def main():
         if query == "quit":
             break
 
-        clientSocket.sendto(send_request(query).encode(), (serverName, serverPort))     # convert user pattern to application protocol send request
+        request = send_request(query)   # convert user query to SEND request
+        clientSocket.sendto(request.encode(), (serverName, serverPort))     # send request to server
 
-        raw_response, _ = clientSocket.recvfrom(MAX_BYTES)  # receive all bytes from server
+        raw_response, _ = clientSocket.recvfrom(MAX_BYTES)  # receive raw data from server
         _, status, N, words = decode_response(raw_response.decode())     # parse response protocol message into data
+
+        # we need to handle the limited size of UDP datagrams because unlike TCP we can't return all the words in one UDP message
         num_words = len(words.split(","))
         total_words = int(N)
 
@@ -30,21 +32,6 @@ def main():
         if status == "404 NOT FOUND":
             print(f"No words were found which matched the given pattern.")
     clientSocket.close()
-
-def send_request(query):
-    """Takes a pattern query and formats it into a request protocol message."""
-    return f"SEND PMWS/1.0\n{query}\n" # 2 segments, request header and the body (with query data)
-
-def decode_response(resp):
-    """Takes a response protocol format and converts it into the respective data fields, protocol_name, status, N_words, and word_list."""
-    segments = resp.split("\n")
-    protocol = segments[0][:8]
-    status = segments[0][9:]
-    N = segments[1][8:]
-    words = segments[2]
-    return protocol, status, N, words
-
-
 
 if __name__ == '__main__':
     main()

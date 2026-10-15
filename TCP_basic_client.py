@@ -1,7 +1,7 @@
-from socket import *
-
 # I started with the basic lecture slide code for TCP
 # I named my protocol Pattern Matching Word Search (PMWS/1.0)
+
+from socket import *
 
 def main():
     serverName = 'localhost'    # hosting server on same machine
@@ -12,8 +12,9 @@ def main():
     clientSocket.connect((serverName, serverPort))  # connect to server socket
 
     query = input('Input Query: ') # accept user input pattern
-
-    clientSocket.send(send_request(query).encode())     # convert user pattern to protocol request
+    
+    request = send_request(query)           # convert user query to SEND request
+    clientSocket.send(request.encode())     # send request to server
 
     response = clientSocket.recv(MAX_BYTES).decode()    # receive the response protocol message
     _, status, N, words = decode_response(response)     # parse response protocol message
@@ -23,7 +24,7 @@ def main():
         print(f"Words: {words}")            
     if status == "404 NOT FOUND":           # if response NOT FOUND print no words found
         print(f"No words were found which matched the given pattern.")
-    clientSocket.close()
+    clientSocket.close()    # close socket
 
 def send_request(query):
     """Takes a pattern query and formats it into a request protocol message."""

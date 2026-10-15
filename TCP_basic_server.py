@@ -1,18 +1,17 @@
 # I referenced the socket programming slides heavily when working on this assignment.
-
-# fnmatch code from https://docs.python.org/3/library/fnmatch.html
+# I named my protocol Pattern Matching Word Search (PMWS/1.0)
 
 from socket import *
 from fnmatch import fnmatch
 
 def main():
-    serverPort = 12000 # Using a unused large port number.
+    serverPort = 12000 # arbitrary unassigned port number
 
     serverSocket = socket(AF_INET, SOCK_STREAM) # create TCP server socket.
-    serverSocket.bind(('', serverPort))
+    serverSocket.bind(('', serverPort))         # bind socket to port
     serverSocket.listen(1)
 
-    serverSocket.settimeout(0.5) # A reasonable amount of time to wait (breaking the blocking of .accept() so that the program can stop with KeyboardInterrupt).
+    serverSocket.settimeout(0.5) # A reasonable amount of time to wait to allow for KeyboardInterrupt
 
     WORD_LIST = get_word_list("wordlist.txt") # split text file into an array of strings.
 
@@ -22,15 +21,16 @@ def main():
     try:
         while True:
             try:
-                connectionSocket, addr = serverSocket.accept()
+                connectionSocket, addr = serverSocket.accept()      # accept client connection
             
                 print(f"Connection @ {addr[0]}:{addr[1]} opened.")
 
                 request = connectionSocket.recv(1024).decode()      # get request formatted string.
                 pattern = decode_request(request)                   # extract string pattern from request format.
                 matching_words = find_words(WORD_LIST, pattern)     # get all words which match the requested format.
+                response = encode_response(matching_words)          # convert word list to response format.
                 
-                connectionSocket.send(encode_response(matching_words).encode()) # format data back into protocol and send to client.
+                connectionSocket.send(response.encode())            # send response to client
 
                 connectionSocket.close()
 
@@ -44,15 +44,16 @@ def main():
     serverSocket.close()
 
 def get_word_list(filename):
+    """Takes a text file and returns an array of each line in the file with \\n removed."""
     with open(filename, 'r') as f: 
-        return f.read().splitlines() # split text file into an array of strings.
+        return f.read().splitlines()
 
 def find_words(WORD_LIST, pattern): 
     """Uses regex pattern matching to pattern match with all of the words in WORD_LIST."""
-    return [word for word in WORD_LIST if fnmatch(word, f"*{pattern}*")] 
+    return [word for word in WORD_LIST if fnmatch(word, f"*{pattern}*")] # fnmatch code from https://docs.python.org/3/library/fnmatch.html
 
 def decode_request(req):
-    """Parses a request formatted as PWMS/1.0 NL pattern NL"""
+    """Parses a request formatted as SEND PWMS/1.0 NL pattern NL"""
     segments = req.split("\n")
     return segments[1] # The segment containing the query
 
